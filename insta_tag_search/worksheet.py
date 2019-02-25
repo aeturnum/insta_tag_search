@@ -12,8 +12,11 @@ class WorkbookManager(object):
         'Username', 'Display Name', 'Profile Picture URL'
     ]
     _post_labels = [
-        'Global ID', 'Username', 'Timestamp', 'Location', 'Comments', 'Image URL', 'Likes',
+        'Global ID', 'URL', 'Location', 'Username', 'Timestamp', 'Comment Count', 'Image URL', 'Likes',
         'Caption'
+    ]
+    _comment_labels = [
+        'Post ID', 'Username', 'Comment ID', 'Content'
     ]
     _sheet_info = ['Tag', 'Account Used']
 
@@ -34,6 +37,9 @@ class WorkbookManager(object):
 
         self.user_worksheet = WorksheetManager(wb.create_sheet("Users"))
         self.user_worksheet.append(self._user_labels)
+
+        self.comment_worksheet = WorksheetManager(wb.create_sheet("Comments"))
+        self.comment_worksheet.append(self._comment_labels)
 
     def _path(self, file:str):
         return join(self._sheet_path, file)

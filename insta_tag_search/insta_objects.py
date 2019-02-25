@@ -13,6 +13,7 @@ class User:
             full_name = user["full_name"],
             profile_picture_url = user["profile_pic_url"]
         )
+
     username: str
     full_name: str
     profile_picture_url: str
@@ -27,23 +28,28 @@ class User:
 class Post:
     @staticmethod
     def create(post):
-        image_url = None
-        caption = post.get("caption", {}).get("text")
-        image_url = post.get("image_versions2", {}).get("candidates", [{}])[0].get("url")
-
-
         try:
+            image_url = None
+            caption = post.get("caption", {}).get("text")
+            image_url = post.get("image_versions2", {}).get("candidates", [{}])[0].get("url")
+            location = None
+            if post.get('lat') != None and post.get('lng') != None:
+                location = {'lat': post.get('lat'), 'lng': post.get('lng')}
+
+
+
             # todo: add flag for comments being disabled
             # todo: get better location data
             return Post(
                 id = post["id"],
                 timestamp = post["taken_at"],
-                location = {'lat': post.get('lat'), 'lng': post.get('lng')},
+                location = location,
                 comment_count = post.get("comment_count", 0),
                 image_url = image_url,
                 user = User.create(post),
                 likes = post["like_count"],
-                caption = caption
+                caption = caption,
+                code = post["code"]
             )
         except Exception as e:
             print(json.dumps(post))
@@ -53,22 +59,36 @@ class Post:
     timestamp: int
     location: dict
     comment_count: int
+    code: str
     image_url: str
     user: User
     likes: int
     caption: str
 
+    def make_instagram_url(self):
+        # https: // www.instagram.com / p / post["code"] /
+        # post["code"]
+        return f'https://www.instagram.com/p/{self.code}/'
+
+    def make_location_url(self):
+        # https://www.google.com/maps/search/?api=1&query=<lat>,<lng>
+        if self.location is None:
+            return ''
+        else:
+            return f'https://www.google.com/maps/search/?api=1&query={self.location["lat"]},{self.location["lng"]}'
+
     def add_to_worksheet(self, worksheet):
         # _post_labels = [
-        #     'Global ID', 'Username', 'Timestamp', 'Location', 'Comments', 'Image URL', 'Likes',
+        #     'Global ID', 'URL', 'Location', 'Username', 'Timestamp', 'Comment Count', 'Image URL', 'Likes',
         #     'Caption'
         # ]
         worksheet.append(
             [
                 self.id,
+                self.make_instagram_url(),
+                self.make_location_url(),
                 self.user.username,
                 self.timestamp,
-                json.dumps(self.location),
                 self.comment_count,
                 self.image_url,
                 self.likes,
@@ -77,5 +97,35 @@ class Post:
         )
 
     def __str__(self):
-        return f"Post({self.user.username})|{self.likes} {self.image_url}"
+        return f"Post({self.user.username})|{self.likes} {self.make_instagram_url()}"
 
+
+@dataclass
+class Comment:
+    id: str
+    user: User
+    post: Post
+    content: str
+
+    @staticmethod
+    def create(Post, comment):
+
+        return Comment(
+            post = Post,
+            user = User.create(comment),
+            id = str(comment.get("pk")),
+            content = comment.get("text")
+        )
+
+    def add_to_worksheet(self, worksheet):
+        # _comment_labels = [
+        #     'Post ID', 'Username', 'Comment ID', 'Content'
+        # ]
+        worksheet.append(
+            [
+                self.post.id,
+                self.user.username,
+                self.id,
+                self.content
+            ]
+        )

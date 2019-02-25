@@ -6,10 +6,10 @@ import json
 import time
 import copy
 
-CONST_TARGET = 200
+CONST_TARGET = 400
 
 def wait():
-    how_long = 2
+    how_long = 1
     print(f"Pausing for {how_long} seconds for Instagram rate limiting")
     time.sleep(how_long)
 
@@ -35,18 +35,24 @@ def get_tags():
         help='The Instagram Tag to search'
     )
 
+    parser.add_argument(
+        '-c', '--count',
+        type=int,
+        required=False,
+        default=CONST_TARGET,
+        help='Number of posts to get (default: 400)'
+    )
+
     args = parser.parse_args()
 
     api = InstagramAPI(args.username, args.password)
     wbm = WorkbookManager(args.tag, args.username)
 
     if (api.login()):
-        wait()
-        time.sleep(2)
-
         item_count = 0
         max_id = ''
         while True:
+            wait()
             api.getHashtagFeed(args.tag, maxid=max_id)
             posts = copy.deepcopy(api.LastJson)
             # print(api.LastJson)  # print last response JSON
@@ -59,18 +65,42 @@ def get_tags():
                 commend_count = 0
                 for comment in post["preview_comments"]:
                     comment_object = Comment.create(post_obj, comment)
-                    comment_object.add_to_worksheet(wbm.comment_worksheet)
-                    commend_count += 1
+                    added = comment_object.add_to_worksheet(wbm.comment_worksheet)
+                    if added:
+                        commend_count += 1
 
+                comment_id = ''
                 if commend_count < post_obj.comment_count:
-                    print(f"Post {str(post_obj)} has more comments to get.")
+                    print(f"Need to fetch more comments for post {str(post_obj)}")
+                    while True:
+                        wait()
+                        api.getMediaComments(post_obj.id, max_id=comment_id)
+
+                        # thanks to https://github.com/LevPasha/Instagram-API-python/blob/master/examples/get_all_comments.py
+
+                        comments = copy.deepcopy(api.LastJson)
+                        has_more_comments = comments.get('has_more_comments', False)
+
+
+                        for comment in comments['comments']:
+                            comment_object = Comment.create(post_obj, comment)
+                            added = comment_object.add_to_worksheet(wbm.comment_worksheet)
+                            if added:
+                                commend_count += 1
+
+                        if has_more_comments:
+                            comment_id = comments.get('next_max_id', '')
+                        else:
+                            break
+
+                    # print(f"Final comment count for {str(post_obj)} is {commend_count}")
+
 
                 item_count += 1
 
-            if item_count >= CONST_TARGET:
+            if item_count >= args.count:
                 break
             max_id = posts["next_max_id"]
-            wait()
 
         print(f"Saved {item_count} items!")
     else:

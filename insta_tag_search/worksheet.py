@@ -85,7 +85,7 @@ class WorksheetManager(object):
         if key is not None:
             if key in self._members:
                 # skip
-                return
+                return False
             self._members.add(key)
         for idx, value in enumerate(row):
             # todo: take newlines into account
@@ -96,3 +96,4 @@ class WorksheetManager(object):
                 self._wb.column_dimensions[letter].width = length
 
         self._wb.append(row)
+        return True

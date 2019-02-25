@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import json
+import time
 
 @dataclass
 class User:
@@ -29,7 +30,6 @@ class Post:
     @staticmethod
     def create(post):
         try:
-            image_url = None
             caption = post.get("caption", {}).get("text")
             image_url = post.get("image_versions2", {}).get("candidates", [{}])[0].get("url")
             location = None
@@ -77,6 +77,9 @@ class Post:
         else:
             return f'https://www.google.com/maps/search/?api=1&query={self.location["lat"]},{self.location["lng"]}'
 
+    def get_text_timestamp(self):
+        return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(self.timestamp))
+
     def add_to_worksheet(self, worksheet):
         # _post_labels = [
         #     'Global ID', 'URL', 'Location', 'Username', 'Timestamp', 'Comment Count', 'Image URL', 'Likes',
@@ -88,7 +91,7 @@ class Post:
                 self.make_instagram_url(),
                 self.make_location_url(),
                 self.user.username,
-                self.timestamp,
+                self.get_text_timestamp(),
                 self.comment_count,
                 self.image_url,
                 self.likes,
@@ -97,7 +100,7 @@ class Post:
         )
 
     def __str__(self):
-        return f"Post({self.user.username})|{self.likes} {self.make_instagram_url()}"
+        return f"Post[+{self.likes}]({self.comment_count} comments) {self.make_instagram_url()} by {self.user.username}"
 
 
 @dataclass
@@ -121,11 +124,13 @@ class Comment:
         # _comment_labels = [
         #     'Post ID', 'Username', 'Comment ID', 'Content'
         # ]
-        worksheet.append(
+        return worksheet.append(
             [
                 self.post.id,
                 self.user.username,
                 self.id,
                 self.content
-            ]
+            ],
+            # avoid duplicate comments
+            key = self.id
         )

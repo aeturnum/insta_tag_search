@@ -52,7 +52,7 @@ class Post:
                 code = post["code"]
             )
         except Exception as e:
-            print(json.dumps(post))
+            print(f'Exception encountered in creating post:\n\t{str(e)}\n\tPost:{str(post)}')
             raise e
 
     id: str

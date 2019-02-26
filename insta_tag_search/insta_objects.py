@@ -30,7 +30,12 @@ class Post:
     @staticmethod
     def create(post):
         try:
-            caption = post.get("caption", {}).get("text")
+            caption = post.get("caption")
+            if caption is not None:
+                caption = caption.get("text")
+            else:
+                caption = ""
+
             image_url = post.get("image_versions2", {}).get("candidates", [{}])[0].get("url")
             location = None
             if post.get('lat') != None and post.get('lng') != None:

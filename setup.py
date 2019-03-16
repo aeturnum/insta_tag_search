@@ -12,7 +12,8 @@ setup(name='insta_tag_search',
       install_requires=["InstagramApi", "openpyxl"],
       entry_points={
               'console_scripts': [
-                  'instatag = insta_tag_search.run:get_tags',
+                  'instahash = insta_tag_search.run:get_hashtags',
+                  'instatag = insta_tag_search.run:get_usertags',
               ],
           }
      )
